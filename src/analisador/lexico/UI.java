@@ -283,6 +283,12 @@ public class UI extends javax.swing.JFrame {
                 cTxtLogSintatico.setBackground(Color.green);
                 cTxtLogSintatico.setText("Arquivo compilado com sucesso!");
             }
+            
+        AnalisadorSemantico asm = new AnalisadorSemantico();
+        asm.setVarList(as.returnVars());
+        asm.setVarListUndeclared(as.returnVarsUndeclared());
+        asm.printVar();
+        asm.printVarUndeclared();
         
     }
     /**

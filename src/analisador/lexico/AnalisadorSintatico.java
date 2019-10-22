@@ -8,6 +8,7 @@ public class AnalisadorSintatico {
     int i;
     int ic;
     ArrayList<Variavel> varList = new ArrayList();
+    ArrayList<TokenArmazenado> varListUndeclared = new ArrayList();
     String indicador = "global";
     String indicador_tipo = "";
     ArrayList<String> erros = new ArrayList();
@@ -68,7 +69,6 @@ public class AnalisadorSintatico {
         status = Regra(0, reservado_fim);
         if(!status) return false;
         Proximo();
-        printVar();
         if(a.token.equals("VAZIO")) return status;
         else return false;
     }
@@ -128,6 +128,7 @@ public class AnalisadorSintatico {
         if(!status) return false;
         status = Comando();
         if(!status) {
+            erros.add("Token " + a.token + " inesperado na linha: "+ a.linha + " e coluna: " + a.coluna);
             status = RecuperarPontoSeguro();
             if (!status) return false;
         }
@@ -320,7 +321,18 @@ public class AnalisadorSintatico {
     }
     
     public boolean Variavel(){
-        if(Regra(1,identificador) || Regra(1, reservado_true) || Regra(1, reservado_false)) return true;
+        if(Regra(1,identificador) || Regra(1, reservado_true) || Regra(1, reservado_false)){
+            if(Regra(1,identificador)){
+                for(int cont = 0; cont < varList.size(); cont++){
+                    if(varList.get(cont).nome.equals(a.valor)){
+                        varList.get(cont).setUsado(true);
+                        return true;
+                    }
+                }
+                varListUndeclared.add(a);
+            }
+            return true;
+        }
         else return false;
     }
    
@@ -491,15 +503,13 @@ public class AnalisadorSintatico {
         i = ic + 1;
         ccontrol = false;
     }
-    
-    public void printVar(){
-        for(int i = 0; i < varList.size(); i++){
-            System.out.println(varList.get(i).print());
-        }
-    }
-    
+     
     public ArrayList<Variavel> returnVars(){
         return varList;
+    }
+    
+    public ArrayList<TokenArmazenado> returnVarsUndeclared(){
+        return varListUndeclared;
     }
     
  }
