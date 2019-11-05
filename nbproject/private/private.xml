@@ -3,10 +3,10 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/C:/Users/cc161255205/Documents/NetBeansProjects/sintatico/src/analisador/lexico/UI.java</file>
-            <file>file:/C:/Users/cc161255205/Documents/NetBeansProjects/sintatico/src/analisador/lexico/AnalisadorSintatico.java</file>
-            <file>file:/C:/Users/cc161255205/Documents/NetBeansProjects/sintatico/src/analisador/lexico/Variavel.java</file>
-            <file>file:/C:/Users/cc161255205/Documents/NetBeansProjects/sintatico/src/analisador/lexico/AnalisadorSemantico.java</file>
+            <file>file:/C:/Users/giova/Documents/NetBeansProjects/Compilador/src/analisador/lexico/AnalisadorSemantico.java</file>
+            <file>file:/C:/Users/giova/Documents/NetBeansProjects/Compilador/src/analisador/lexico/Variavel.java</file>
+            <file>file:/C:/Users/giova/Documents/NetBeansProjects/Compilador/src/analisador/lexico/AnalisadorSintatico.java</file>
+            <file>file:/C:/Users/giova/Documents/NetBeansProjects/Compilador/src/analisador/lexico/UI.java</file>
         </group>
     </open-files>
 </project-private>

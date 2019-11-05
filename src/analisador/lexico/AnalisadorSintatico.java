@@ -6,12 +6,16 @@ public class AnalisadorSintatico {
 
     private ArrayList<TokenArmazenado> tokens = new ArrayList();
     int i;
+    boolean ladoEsquerdo;
     int ic;
+    String tipoRW;
+    Variavel varGlobal;
     ArrayList<Variavel> varList = new ArrayList();
     ArrayList<TokenArmazenado> varListUndeclared = new ArrayList();
     String indicador = "global";
     String indicador_tipo = "";
     ArrayList<String> erros = new ArrayList();
+    ArrayList<String> errosSemanticos = new ArrayList();
     TokenArmazenado a = new TokenArmazenado();
     Boolean status = true;
     String[] programa = {"RESERVADO_PROGRAM"};
@@ -200,11 +204,47 @@ public class AnalisadorSintatico {
     public boolean ReadOrWrite(){
         
         if(Regra(1, reservado_read_write) ){
+            tipoRW = "";
+            int var = 0;
             Proximo();
             if(Regra(0,abre_parent)){
                 Proximo();
                 if(Regra(0, identificador)){
+                    
+                    for(int j = 0; j < varList.size(); j++){
+                        if(varList.get(j).nome.equals(a.valor)){
+                            tipoRW = varList.get(j).tipo;
+                            var ++;
+                        }
+                    }
+                    if(var == 0){
+                        varListUndeclared.add(a);
+                    }
+                    
                     Proximo();
+                    if(Regra(1,sinal_virgula)){
+                        Proximo();
+                        while(Regra(0, identificador)){
+                             for(int j = 0; j < varList.size(); j++){
+                                if(varList.get(j).nome.equals(a.valor)){
+                                    if(tipoRW.equals(varList.get(j).tipo)){
+                                        var ++;
+                                    }
+                                    else{
+                                        errosSemanticos.add("Tipos conflitantes nos parametros do Read/Write na linha: " + a.linha + " coluna: " + a.coluna);
+                                    }
+                                }
+                            }
+                            if(var == 0){
+                                varListUndeclared.add(a);
+                            }
+
+                            Proximo();
+                            if(Regra(1,sinal_virgula)) Proximo();
+                            else break;
+                        }
+                    }
+                    
                     if(!Regra(0,fecha_parent)) return false;
                     Proximo();
                 } 
@@ -247,10 +287,11 @@ public class AnalisadorSintatico {
     }
     
     public boolean Atribuicao(){
-        
+        ladoEsquerdo = true;
         if(!Variavel()) return false;       
         Expressao();
         if(!Regra(0, sinal_atrib)) return false;
+        ladoEsquerdo = false;
         if(!Expressao()){
             erros.add("Faltando complemento para atribuição na linha: " + a.linha + " coluna: "+ a.coluna);
             return false;
@@ -316,20 +357,53 @@ public class AnalisadorSintatico {
     }
     
     public boolean Num(){
-        if(Regra(1, num_int)) return true;
+        if(Regra(1, num_int)){
+            if(varGlobal != null){
+                if(!ladoEsquerdo){
+                    if(varGlobal.tipo.equals("boolean")){
+                        errosSemanticos.add("Tentativa de operação com inteiros na váriavel '" + varGlobal.nome + "' do tipo boolean!");
+                    }
+                }
+            }
+            
+            return true;
+        }
         else return false;
     }
     
     public boolean Variavel(){
         if(Regra(1,identificador) || Regra(1, reservado_true) || Regra(1, reservado_false)){
             if(Regra(1,identificador)){
+                
                 for(int cont = 0; cont < varList.size(); cont++){
                     if(varList.get(cont).nome.equals(a.valor)){
-                        varList.get(cont).setUsado(true);
+                        
+                        if(varList.get(cont).indicador.equals(indicador)){
+                            varList.get(cont).setUsado(true);
+                            if(ladoEsquerdo) varGlobal = varList.get(cont); 
+                        }
+                        else if(varList.get(cont).indicador.equals("global")){
+                            varList.get(cont).setUsado(true);
+                            if(ladoEsquerdo) varGlobal = varList.get(cont); 
+                        }
+                        else{
+                            errosSemanticos.add("Váriavel '" + a.valor + "' está sendo usada fora do escopo!" );
+                            for(int j = 0; j < varListUndeclared.size(); j++){
+                                if(varListUndeclared.get(j).valor.equals(a.valor)) varListUndeclared.remove(j);
+                            }
+                            return true;
+                        }
                         return true;
                     }
                 }
                 varListUndeclared.add(a);
+                if(ladoEsquerdo) varGlobal = null;
+            }
+            else{
+                if(!ladoEsquerdo){
+                    if(varGlobal != null) if(varGlobal.tipo.equals("boolean")) varGlobal.setValor(a.valor);
+                    else errosSemanticos.add("Tentativa de operação com boolean na váriavel '" + varGlobal.nome + "' do tipo int!");
+                }
             }
             return true;
         }
@@ -370,13 +444,20 @@ public class AnalisadorSintatico {
     
     public boolean ListaVarVar(){
         Boolean aux = true;
+        int ver = 0;
         Variavel v;
         if(a.token.equals("RESERVADO_VAR")){
             Proximo();
             aux = Regra(0,identificador);
             if(!aux) return false;
             v = new Variavel(a.valor, indicador_tipo, indicador);
-            varList.add(v);
+            for(int it = 0; it < varList.size(); it++){
+                if(varList.get(it).Igual(v)){
+                    errosSemanticos.add("Váriavel " + v.getNome() + " já declarada neste escopo!");
+                    ver ++;
+                } 
+            }
+            if (ver == 0) varList.add(v);
             Proximo();
             aux = Regra(1,sinal_virgula);
             if(aux){
@@ -384,7 +465,14 @@ public class AnalisadorSintatico {
                 if(a.token.equals("RESERVADO_VAR")) Proximo();
                 while(Regra(0,identificador)){
                     v = new Variavel(a.valor, indicador_tipo, indicador);
-                    varList.add(v);
+                    ver = 0;
+                    for(int it = 0; it < varList.size(); it++){
+                        if(varList.get(it).Igual(v)){
+                            errosSemanticos.add("Váriavel " + v.getNome() + " já declarada neste escopo!");
+                            ver ++;
+                        } 
+                    }
+                    if (ver == 0) varList.add(v);
                     Proximo();
                     aux = Regra(1,sinal_virgula);
                     if(!aux) break;
@@ -402,7 +490,14 @@ public class AnalisadorSintatico {
                 if(a.token.equals("RESERVADO_VAR")) Proximo();
                 while(Regra(0,identificador)){
                     v = new Variavel(a.valor, indicador_tipo, indicador);
-                    varList.add(v);
+                    ver = 0;
+                    for(int it = 0; it < varList.size(); it++){
+                        if(varList.get(it).Igual(v)){
+                            errosSemanticos.add("Váriavel " + v.getNome() + " já declarada neste escopo!");
+                            ver ++;
+                        } 
+                    }
+                    if (ver == 0) varList.add(v);
                     Proximo();
                     aux = Regra(1,sinal_virgula);
                     if(!aux) break;
@@ -417,19 +512,33 @@ public class AnalisadorSintatico {
     
     public boolean ListaVar(){
         Boolean aux = true;
+        int ver = 0;
         Variavel v;
         Proximo();
         aux = Regra(0,identificador);
         if(!aux) return false;
         v = new Variavel(a.valor, indicador_tipo, indicador);
-        varList.add(v);
+        for(int it = 0; it < varList.size(); it++){
+           if(varList.get(it).Igual(v)){
+               errosSemanticos.add("Váriavel " + v.getNome() + " já declarada neste escopo!");
+               ver ++;
+           } 
+        }
+        if (ver == 0) varList.add(v);
         Proximo();
         aux = Regra(1,sinal_virgula);
         if(aux){
             Proximo();
             while(Regra(0,identificador)){
                 v = new Variavel(a.valor, indicador_tipo, indicador);
-                varList.add(v);
+                ver = 0;
+                for(int it = 0; it < varList.size(); it++){
+                    if(varList.get(it).Igual(v)){
+                        errosSemanticos.add("Váriavel " + v.getNome() + " já declarada neste escopo!");
+                        ver ++;
+                    } 
+                }
+                if (ver == 0) varList.add(v);
                 Proximo();
                 aux = Regra(1,sinal_virgula);
                 if(!aux) break;
@@ -486,6 +595,21 @@ public class AnalisadorSintatico {
         
         for(int j = 0; j < erros.size(); j++){
             erro = erro + erros.get(j) + "\n";
+        }
+        
+        return erro;
+    }
+    
+    public String ErrosS(){
+        
+        String erro = "";
+        
+        for(int j = 0; j < varListUndeclared.size(); j++){
+           erro = "Aviso: Váriavel '" + varListUndeclared.get(j).valor + "' não declarada! \n";
+        }
+                
+        for(int j = 0; j < errosSemanticos.size(); j++){
+            erro = erro +"Aviso: " + errosSemanticos.get(j) + "\n";
         }
         
         return erro;

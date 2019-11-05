@@ -1,8 +1,6 @@
 program a;
-int a,b,e;
+int a;
+boolean b;
 begin
-c:=2;
-a:=1;
-d:=3;
-e:=2
+a()
 end.

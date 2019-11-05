@@ -2,11 +2,11 @@ package analisador.lexico;
 
 public class Variavel {
     
-    Boolean usado;
-    String nome;
-    String tipo;
-    String valor;
-    String indicador;
+    public Boolean usado;
+    public String nome;
+    public String tipo;
+    public String valor;
+    public String indicador;
 
     public Variavel(String nome, String tipo, String indicador) {
         this.usado = false;
@@ -65,5 +65,9 @@ public class Variavel {
         return a;
     }
    
+    public boolean Igual (Variavel b){
+        if(this.nome.equals(b.nome) && this.indicador.equals(b.indicador)) return true;
+        return false;
+    }
     
 }
