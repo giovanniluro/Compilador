@@ -1,0 +1,11 @@
+program a;
+int a,b,c,d;
+
+procedure test(var a,b,c : int);
+begin
+a := 2
+end
+
+begin
+test(a,b)
+end.
